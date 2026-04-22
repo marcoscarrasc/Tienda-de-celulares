@@ -2,148 +2,185 @@ package com.tienda.view;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableRowSorter;
 import java.awt.*;
-import javax.swing.JFrame;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
 
 public class MenuPrincipal extends JFrame {
     private JTable tabla;
     private DefaultTableModel modelo;
-    private JButton btnRegistro, btnVenta;
+    private JTextField txtBusqueda;
+    private boolean usuarioLogueado = false;
+
+    // Paleta de colores c√°lidos
+    public static final Color NARANJA_PRIMARIO = new Color(255, 140, 0);
+    public static final Color AMBAR_FONDO = new Color(255, 248, 225);
+    public static final Color CREMA_DETALLE = new Color(255, 253, 231);
 
     public MenuPrincipal() {
-        setTitle("Sistema de Ventas de Celulares");
-        setSize(800, 500);
+        setTitle("Phone Store - Gesti√≥n de Ventas");
+        setSize(1100, 650);
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
-        setLayout(new BorderLayout());
+        getContentPane().setBackground(AMBAR_FONDO);
+        setLayout(new BorderLayout(10, 10));
 
-        // Panel Superior: Botones
-        JPanel panelBotones = new JPanel();
-        btnRegistro = new JButton("Registrar Celular");
-        btnVenta = new JButton("Realizar Venta");
-        panelBotones.add(btnRegistro);
-        panelBotones.add(btnVenta);
-        add(panelBotones, BorderLayout.NORTH);
+        // --- CABECERA (LOGO + BUSCADOR + ACCIONES) ---
+        JPanel pnlCabecera = new JPanel(new BorderLayout());
+        pnlCabecera.setBackground(NARANJA_PRIMARIO);
+        pnlCabecera.setPreferredSize(new Dimension(100, 70));
 
-        // Centro: Tabla
-        String[] columnas = {"Marca", "Modelo", "Precio (S/)", "Stock"};
-        modelo = new DefaultTableModel(columnas, 0);
+        // 1. Logo y Buscador (Izquierda)
+        JPanel pnlLogoBusqueda = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 15));
+        pnlLogoBusqueda.setOpaque(false);
+        
+        JLabel lblLogo = new JLabel("PHONE STORE");
+        lblLogo.setFont(new Font("Arial Black", Font.ITALIC, 22));
+        lblLogo.setForeground(Color.WHITE);
+        
+        txtBusqueda = new JTextField(15);
+        txtBusqueda.setToolTipText("Buscar por modelo o marca...");
+        
+        pnlLogoBusqueda.add(lblLogo);
+        pnlLogoBusqueda.add(new JLabel(" üîç "));
+        pnlLogoBusqueda.add(txtBusqueda);
+
+        // 2. Botones de Operaci√≥n (Centro)
+        JPanel pnlAcciones = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 15));
+        pnlAcciones.setOpaque(false);
+        
+        JButton btnAdd = crearBotonEstilizado(" Registrar");
+        JButton btnEdit = crearBotonEstilizado(" Editar");
+        JButton btnGift = crearBotonEstilizado(" Regalos");
+        JButton btnVend = crearBotonEstilizado(" Vender");
+        
+        pnlAcciones.add(btnAdd); 
+        pnlAcciones.add(btnEdit); 
+        pnlAcciones.add(btnGift); 
+        pnlAcciones.add(btnVend);
+
+        // 3. Botones de Sesi√≥n (Derecha - Iniciar y Salir JUNTOS)
+        JPanel pnlDerecha = new JPanel(new FlowLayout(FlowLayout.RIGHT, 15, 15));
+        pnlDerecha.setOpaque(false);
+        
+        JButton btnLogin = crearBotonEstilizado(" Iniciar Sesi√≥n");
+        JButton btnSalir = crearBotonEstilizado(" Salir");
+        
+        pnlDerecha.add(btnLogin); // Agregado aqu√≠ para que est√©n juntos
+        pnlDerecha.add(btnSalir);
+
+        // Montar la cabecera
+        pnlCabecera.add(pnlLogoBusqueda, BorderLayout.WEST);
+        pnlCabecera.add(pnlAcciones, BorderLayout.CENTER);
+        pnlCabecera.add(pnlDerecha, BorderLayout.EAST);
+        add(pnlCabecera, BorderLayout.NORTH);
+
+        // --- TABLA DE INVENTARIO ---
+        modelo = new DefaultTableModel(new String[]{"Marca", "Modelo", "Caracteristica", "Precio", "Stock"}, 0);
         tabla = new JTable(modelo);
-        add(new JScrollPane(tabla), BorderLayout.CENTER);
+        tabla.setRowHeight(35);
+        tabla.setFont(new Font("SansSerif", Font.PLAIN, 14));
+        tabla.setSelectionBackground(NARANJA_PRIMARIO);
+        tabla.setSelectionForeground(Color.WHITE);
+        
+        JScrollPane scroll = new JScrollPane(tabla);
+        scroll.getViewport().setBackground(AMBAR_FONDO);
+        scroll.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        add(scroll, BorderLayout.CENTER);
 
-        // EVENTO: REGISTRO
-        btnRegistro.addActionListener(e -> registrar());
-
-        // EVENTO: VENTA
-        btnVenta.addActionListener(e -> vender());
-    }
-
-    private void registrar() {
-        JTextField mrc = new JTextField();
-        JTextField mod = new JTextField();
-        JTextField pre = new JTextField();
-        JTextField stk = new JTextField();
-
-        Object[] msg = {"Marca:", mrc, "Modelo:", mod, "Precio:", pre, "Stock:", stk};
-        int op = JOptionPane.showConfirmDialog(this, msg, "Nuevo Celular", JOptionPane.OK_CANCEL_OPTION);
-
-        if (op == JOptionPane.OK_OPTION) {
-            modelo.addRow(new Object[]{mrc.getText(), mod.getText(), pre.getText(), stk.getText()});
-        }
-    }
-
-    private void vender() {
-        // 1. Verificar si hay datos en la tabla para vender
-        if (modelo.getRowCount() == 0) {
-            JOptionPane.showMessageDialog(this, "No hay celulares registrados para vender.");
-            return;
-        }
-
-        // 2. Crear una lista de opciones para el seleccionable (Marcas de la tabla)
-        String[] opcionesMarcas = new String[modelo.getRowCount()];
-        for (int i = 0; i < modelo.getRowCount(); i++) {
-            // Guardamos Marca + Modelo para que el usuario sepa quÈ elige
-            opcionesMarcas[i] = modelo.getValueAt(i, 0).toString() + " - " + modelo.getValueAt(i, 1).toString();
-        }
-
-        // 3. Componentes del Formulario
-        JComboBox<String> cbCelulares = new JComboBox<>(opcionesMarcas);
-        JTextField txtCliente = new JTextField();
-        JTextField txtCantidad = new JTextField("1");
-        JLabel lblDetalles = new JLabel("Seleccione un producto para ver el precio.");
-
-        // AcciÛn para actualizar el precio en tiempo real al cambiar la selecciÛn
-        cbCelulares.addActionListener(e -> {
-            int index = cbCelulares.getSelectedIndex();
-            if (index != -1) {
-                String precio = modelo.getValueAt(index, 2).toString();
-                String stock = modelo.getValueAt(index, 3).toString();
-                lblDetalles.setText("Precio: S/ " + precio + " | Stock: " + stock);
+        // --- L√ìGICA DE FILTRADO ---
+        TableRowSorter<DefaultTableModel> sorter = new TableRowSorter<>(modelo);
+        tabla.setRowSorter(sorter);
+        txtBusqueda.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyReleased(KeyEvent e) {
+                String filtro = txtBusqueda.getText();
+                sorter.setRowFilter(RowFilter.regexFilter("(?i)" + filtro));
             }
         });
+
+        // --- EVENTOS ---
+        btnLogin.addActionListener(e -> new Login(this).setVisible(true));
         
-        // Disparar el evento una vez para que muestre el precio del primer elemento por defecto
-        cbCelulares.setSelectedIndex(0);
-
-        Object[] formularioVenta = {
-            "Seleccione Celular:", cbCelulares,
-            "", lblDetalles,
-            "\nNombre del Cliente:", txtCliente,
-            "Cantidad a comprar:", txtCantidad
-        };
-
-        // 4. Mostrar el Di·logo
-        int opcion = JOptionPane.showConfirmDialog(this, formularioVenta, "Realizar Venta", JOptionPane.OK_CANCEL_OPTION);
-
-        if (opcion == JOptionPane.OK_OPTION) {
-            try {
-                int filaSeleccionada = cbCelulares.getSelectedIndex();
-                int cantidadAVender = Integer.parseInt(txtCantidad.getText());
-                String nombreCliente = txtCliente.getText();
-
-                // Obtener datos de la fila que corresponde a la selecciÛn del ComboBox
-                String marca = modelo.getValueAt(filaSeleccionada, 0).toString();
-                String mod = modelo.getValueAt(filaSeleccionada, 1).toString();
-                double precioUnit = Double.parseDouble(modelo.getValueAt(filaSeleccionada, 2).toString());
-                int stockActual = Integer.parseInt(modelo.getValueAt(filaSeleccionada, 3).toString());
-
-                // 5. Validaciones
-                if (nombreCliente.isEmpty()) {
-                    JOptionPane.showMessageDialog(this, "Ingrese el nombre del cliente.");
-                    return;
-                }
-                if (cantidadAVender > stockActual) {
-                    JOptionPane.showMessageDialog(this, "No hay suficiente stock.");
-                    return;
-                }
-
-                // 6. Procesar Venta y Actualizar Tabla
-                double importeTotal = precioUnit * cantidadAVender;
-                modelo.setValueAt(stockActual - cantidadAVender, filaSeleccionada, 3);
-
-                // 7. Generar Boleta
-                mostrarBoleta(nombreCliente, marca + " " + mod, cantidadAVender, precioUnit, importeTotal);
-
-            } catch (NumberFormatException ex) {
-                JOptionPane.showMessageDialog(this, "La cantidad debe ser un n˙mero.");
+        btnGift.addActionListener(e -> {
+            if(validarAcceso()) new FormularioRegalo(this).setVisible(true);
+        });
+        
+        btnVend.addActionListener(e -> {
+            if(validarAcceso()) {
+                if(modelo.getRowCount() > 0) new FormularioVenta(this, modelo).setVisible(true);
+                else JOptionPane.showMessageDialog(this, "No hay stock para vender.");
             }
+        });
+
+        btnAdd.addActionListener(e -> { if(validarAcceso()) gestionarCelular(-1); });
+
+        btnEdit.addActionListener(e -> {
+            if(validarAcceso()) {
+                int fila = tabla.getSelectedRow();
+                if (fila != -1) gestionarCelular(tabla.convertRowIndexToModel(fila));
+                else JOptionPane.showMessageDialog(this, "Seleccione un producto.");
+            }
+        });
+
+        btnSalir.addActionListener(e -> System.exit(0));
+    }
+
+    public void cargarDatosTrasLogin() {
+        this.usuarioLogueado = true;
+        if (modelo.getRowCount() == 0) {
+            modelo.addRow(new Object[]{"Samsung", "Galaxy S23", "128GB, 8GB RAM", 3200.0, 15});
+            modelo.addRow(new Object[]{"Apple", "iPhone 15", "256GB, A16 Bionic", 4500.0, 10});
+            modelo.addRow(new Object[]{"Xiaomi", "Redmi Note 13", "256GB, 12GB RAM", 1500.0, 20});
+        }
+        JOptionPane.showMessageDialog(this, "Sesi√≥n Iniciada con √âxito");
+    }
+
+    private boolean validarAcceso() {
+        if (!usuarioLogueado) {
+            JOptionPane.showMessageDialog(this, "Debe iniciar sesi√≥n para realizar esta operaci√≥n.");
+            return false;
+        }
+        return true;
+    }
+
+    private void gestionarCelular(int fila) {
+        JTextField m1 = new JTextField(); JTextField m2 = new JTextField();
+        JTextField c = new JTextField(); JTextField p = new JTextField();
+        JTextField s = new JTextField();
+        
+        if (fila != -1) {
+            m1.setText(modelo.getValueAt(fila, 0).toString()); m2.setText(modelo.getValueAt(fila, 1).toString());
+            c.setText(modelo.getValueAt(fila, 2).toString()); p.setText(modelo.getValueAt(fila, 3).toString());
+            s.setText(modelo.getValueAt(fila, 4).toString());
+        }
+
+        Object[] msg = {"Marca:", m1, "Modelo:", m2, "Detalle:", c, "Precio:", p, "Stock:", s};
+        int r = JOptionPane.showConfirmDialog(this, msg, "Datos del Equipo", JOptionPane.OK_CANCEL_OPTION);
+        
+        if (r == JOptionPane.OK_OPTION) {
+            try {
+                Object[] data = {m1.getText(), m2.getText(), c.getText(), Double.parseDouble(p.getText()), Integer.parseInt(s.getText())};
+                if (fila == -1) modelo.addRow(data);
+                else for (int i = 0; i < 5; i++) modelo.setValueAt(data[i], fila, i);
+            } catch (Exception ex) { JOptionPane.showMessageDialog(this, "Error: Verifique Precio/Stock"); }
         }
     }
 
-    // MÈtodo auxiliar para imprimir la boleta
-    private void mostrarBoleta(String cliente, String prod, int cant, double pUnit, double total) {
-        String ticket = "==============================\n" +
-                        "       BOLETA DE VENTA        \n" +
-                        "==============================\n" +
-                        "Cliente: " + cliente.toUpperCase() + "\n" +
-                        "Producto: " + prod + "\n" +
-                        "Cant: " + cant + "  x  S/ " + pUnit + "\n" +
-                        "------------------------------\n" +
-                        "TOTAL A PAGAR: S/ " + total + "\n" +
-                        "==============================\n";
-        
-        JTextArea area = new JTextArea(ticket);
-        area.setFont(new Font("Monospaced", Font.PLAIN, 12));
-        JOptionPane.showMessageDialog(this, new JScrollPane(area), "Venta Exitosa", JOptionPane.INFORMATION_MESSAGE);
+    private JButton crearBotonEstilizado(String texto) {
+        JButton btn = new JButton(texto);
+        btn.setBackground(CREMA_DETALLE);
+        btn.setFocusPainted(false);
+        btn.setFont(new Font("Arial", Font.BOLD, 12));
+        btn.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(Color.GRAY),
+            BorderFactory.createEmptyBorder(5, 10, 5, 10)
+        ));
+        return btn;
+    }
+
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(() -> new MenuPrincipal().setVisible(true));
     }
 }
